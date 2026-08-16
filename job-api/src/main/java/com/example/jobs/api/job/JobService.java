@@ -2,6 +2,7 @@ package com.example.jobs.api.job;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -13,9 +14,11 @@ public class JobService {
     private static final int DEFAULT_MAX_ATTEMPTS = 3;
 
     private final JobRepository jobRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public JobService(JobRepository jobRepository) {
+    public JobService(JobRepository jobRepository, ApplicationEventPublisher eventPublisher) {
         this.jobRepository = jobRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -45,6 +48,8 @@ public class JobService {
         );
 
         JobEntity savedJob = jobRepository.saveAndFlush(job);
+        
+        eventPublisher.publishEvent(new JobCreatedEvent(savedJob));
 
         return JobResponse.from(savedJob);
     }
