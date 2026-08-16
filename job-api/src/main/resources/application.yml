@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: job-api
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/djpp}
+    username: ${DB_USERNAME:djpp}
+    password: ${DB_PASSWORD:djpp}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
