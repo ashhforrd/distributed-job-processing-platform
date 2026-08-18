@@ -1,5 +1,6 @@
 package com.example.jobs.api.job;
 
+import com.example.jobs.domain.JobStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -15,6 +16,8 @@ public class JobCreatedEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onJobCreated(JobCreatedEvent event) {
-        jobPublisher.publish(event.job());
+        if (event.job().getStatus() == JobStatus.QUEUED) {
+            jobPublisher.publish(event.job());
+        }
     }
 }

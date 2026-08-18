@@ -34,9 +34,11 @@ public class JobService {
         int maxAttempts = request.maxAttempts() == null 
             ? DEFAULT_MAX_ATTEMPTS
             : request.maxAttempts();
+        
+        Instant now = Instant.now();
 
         Instant scheduledAt = request.scheduledAt() == null 
-            ? Instant.now()
+            ? now
             : request.scheduledAt();
     
         JobEntity job = new JobEntity(
@@ -46,6 +48,10 @@ public class JobService {
             scheduledAt,
             idempotencyKey
         );
+
+        if (!scheduledAt.isAfter(now)) {
+            job.markQueued();
+        } 
 
         JobEntity savedJob = jobRepository.saveAndFlush(job);
         

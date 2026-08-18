@@ -143,4 +143,9 @@ public class JobEntity {
     public long getVersion() {
         return version;
     }
+
+    public void markQueued() {
+        this.status = JobStatus.QUEUED;
+    }
+    
 }

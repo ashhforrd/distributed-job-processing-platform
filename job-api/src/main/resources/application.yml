@@ -24,3 +24,5 @@ spring:
 app:
   kafka:
     job-topic: ${JOB_TOPIC:jobs.v1}
+  scheduling:
+    poll-interval-ms: ${SCHEDULER_POLL_INTERVAL_MS:1000}
