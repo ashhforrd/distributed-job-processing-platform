@@ -1,63 +1,47 @@
 package com.example.jobs.api.job;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.context.ApplicationEventPublisher;
 
-import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class JobService {
 
-    private static final int DEFAULT_MAX_ATTEMPTS = 3;
-
     private final JobRepository jobRepository;
-    private final ApplicationEventPublisher eventPublisher;
+    private final JobCreator jobCreator;
 
-    public JobService(JobRepository jobRepository, ApplicationEventPublisher eventPublisher) {
+    public JobService(
+        JobRepository jobRepository,
+        JobCreator jobCreator
+    ) {
         this.jobRepository = jobRepository;
-        this.eventPublisher = eventPublisher;
+        this.jobCreator = jobCreator;
     }
 
-    @Transactional
     public JobResponse create(CreateJobRequest request) {
         String idempotencyKey = normalize(request.idempotencyKey());
 
-        Optional<JobEntity> existingJob = findByIdempotencyKey(idempotencyKey);
+        Optional<JobEntity> existingJob =
+            findByIdempotencyKey(idempotencyKey);
 
         if (existingJob.isPresent()) {
             return JobResponse.from(existingJob.get());
         }
 
-        int maxAttempts = request.maxAttempts() == null 
-            ? DEFAULT_MAX_ATTEMPTS
-            : request.maxAttempts();
-        
-        Instant now = Instant.now();
+        try {
+            return jobCreator.createNew(request, idempotencyKey);
+        } catch (DataIntegrityViolationException exception) {
+            if (idempotencyKey == null) {
+                throw exception;
+            }
 
-        Instant scheduledAt = request.scheduledAt() == null 
-            ? now
-            : request.scheduledAt();
-    
-        JobEntity job = new JobEntity(
-            request.type().trim(),
-            request.payload(),
-            maxAttempts,
-            scheduledAt,
-            idempotencyKey
-        );
-
-        if (!scheduledAt.isAfter(now)) {
-            job.markQueued();
-        } 
-
-        JobEntity savedJob = jobRepository.saveAndFlush(job);
-        
-        eventPublisher.publishEvent(new JobCreatedEvent(savedJob));
-
-        return JobResponse.from(savedJob);
+            return jobRepository.findByIdempotencyKey(idempotencyKey)
+                .map(JobResponse::from)
+                .orElseThrow(() -> exception);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -67,8 +51,9 @@ public class JobService {
             .orElseThrow(() -> new JobNotFoundException(jobId));
     }
 
-
-    private Optional<JobEntity> findByIdempotencyKey(String idempotencyKey) {
+    private Optional<JobEntity> findByIdempotencyKey(
+        String idempotencyKey
+    ) {
         if (idempotencyKey == null) {
             return Optional.empty();
         }
