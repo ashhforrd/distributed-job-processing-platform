@@ -29,10 +29,17 @@ spring:
         spring.json.trusted.packages: com.example.jobs.domain
         spring.json.value.default.type: com.example.jobs.domain.JobMessage
         spring.json.use.type.headers: false
-
+    
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    
     listener:
       ack-mode: record
 
 app:
   kafka:
     job-topic: ${JOB_TOPIC:jobs.v1}
+    dead-letter-topic: ${JOB_DEAD_LETTER_TOPIC:jobs.v1.DLT}
