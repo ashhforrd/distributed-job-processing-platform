@@ -1,8 +1,8 @@
 package com.example.jobs.api.job;
 
-import com.example.jobs.domain.JobStatus;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
@@ -13,9 +13,21 @@ public interface JobRepository extends JpaRepository<JobEntity, UUID> {
 
     Optional<JobEntity> findByIdempotencyKey(String idempotencyKey);
 
-    List<JobEntity> findByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAsc(
-        JobStatus status,
-        Instant scheduledAt,
-        Pageable pageable
+    @Query(
+        value = """
+                SELECT *
+                FROM jobs
+                WHERE status = :status
+                    AND scheduled_at <= :scheduledAt
+                ORDER BY scheduled_at ASC
+                LIMIT :batchSize
+                FOR UPDATE SKIP LOCKED
+                """,
+            nativeQuery = true
+    )
+    List<JobEntity> findDueJobsForUpdate(
+        @Param("status") String status,
+        @Param("scheduledAt") Instant scheduledAt,
+        @Param("batchSize") int batchSize
     );
 }

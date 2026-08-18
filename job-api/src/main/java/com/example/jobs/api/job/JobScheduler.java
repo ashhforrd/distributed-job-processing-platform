@@ -2,7 +2,6 @@ package com.example.jobs.api.job;
 
 import com.example.jobs.domain.JobStatus;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,10 +29,11 @@ public class JobScheduler {
     @Transactional
     public void enqueueDueJobs() {
         List<JobEntity> dueJobs =
-            jobRepository.findByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAsc(
-                JobStatus.PENDING, 
+            jobRepository.findDueJobsForUpdate(
+                JobStatus.PENDING.name(),
                 Instant.now(), 
-                PageRequest.of(0, BATCH_SIZE));
+                BATCH_SIZE
+            );
         
         for (JobEntity job : dueJobs) {
             job.markQueued();
