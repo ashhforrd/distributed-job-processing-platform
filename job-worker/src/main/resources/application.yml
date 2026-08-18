@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: job-worker
+
+  main:
+    web-application-type: none
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/djpp}
+    username: ${DB_USERNAME:djpp}
+    password: ${DB_PASSWORD:djpp}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+    consumer:
+      group-id: job-workers
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+      properties:
+        spring.json.trusted.packages: com.example.jobs.domain
+        spring.json.value.default.type: com.example.jobs.domain.JobMessage
+        spring.json.use.type.headers: false
+
+    listener:
+      ack-mode: record
+
+app:
+  kafka:
+    job-topic: ${JOB_TOPIC:jobs.v1}
